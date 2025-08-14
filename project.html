@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Automatic Door – Open/Close Demo</title>
+<style>
+  :root{
+    --door-width: 120px;
+    --door-height: 220px;
+    --frame-width: calc(var(--door-width) * 2 + 20px);
+    --auto-close-ms: 3000;
+  }
+
+  body{
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background:#0f172a; /* slate-900 */
+    color:#e5e7eb;       /* gray-200 */
+    display:flex;
+    min-height:100svh;
+    align-items:center;
+    justify-content:center;
+    margin:0;
+    padding:24px;
+  }
+
+  .panel{
+    width:min(95vw, 900px);
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:16px;
+  }
+
+  .title{
+    font-weight:700;
+    font-size:clamp(20px, 2.5vw, 28px);
+    letter-spacing:.3px;
+    display:flex;
+    align-items:center;
+    gap:.6rem;
+  }
+  .title .dot{ width:10px; height:10px; border-radius:50%; background:#22c55e; box-shadow:0 0 12px #22c55e; }
+
+  /* Door area */
+  .site{
+    display:grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap:18px;
+    align-items:center;
+  }
+
+  .sensor{
+    height: 140px;
+    border-radius: 12px;
+    outline: 2px dashed #38bdf8; /* sky-400 */
+    outline-offset: 6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#a5f3fc;
+    background: rgba(56,189,248,.08);
+    user-select:none;
+  }
+  .sensor strong{ color:#e0f2fe; }
+  .sensor small{ display:block; opacity:.8; margin-top:4px; }
+
+  .door-frame{
+    width: var(--frame-width);
+    height: var(--door-height);
+    border: 6px solid #1f2937;      /* gray-800 frame */
+    border-radius: 16px;
+    background: linear-gradient(#0b1024, #0b1024) padding-box,
+                radial-gradient(120% 80% at 50% 0%, #1f2937, #0b1024) border-box;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 0 3px rgba(255,255,255,.03);
+  }
+
+  /* Track on floor */
+  .track{
+    position:absolute; left:0; right:0; bottom:10px; height:4px;
+    background: linear-gradient(90deg, #1f2937 0 50%, #0b1024 50% 100%);
+    opacity:.6;
+  }
+
+  /* Door leaves */
+  .door{
+    position:absolute; top:0; width:var(--door-width); height:100%;
+    background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 30%, #64748b 100%);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.15), inset 0 0 18px rgba(0,0,0,.35);
+    transition: transform 520ms ease-in-out;
+  }
+  .door.left { left: 10px; border-radius: 12px 0 0 12px; }
+  .door.right{ right: 10px; border-radius: 0 12px 12px 0; }
+
+  /* Window on each door */
+  .window{
+    position:absolute; left:18px; right:18px; top:54px; height:70px;
+    background: linear-gradient(180deg, rgba(148,163,184,.35), rgba(100,116,139,.15));
+    border-radius:10px;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.14);
+    backdrop-filter: blur(1px);
+  }
+
+  /* Open state transforms */
+  .door-frame.open .door.left  { transform: translateX(calc(-1 * (var(--door-width) + 6px))); }
+  .door-frame.open .door.right { transform: translateX(calc( 1 * (var(--door-width) + 6px))); }
+
+  /* Controls */
+  .controls{
+    display:flex; gap:10px; flex-wrap:wrap;
+    align-items:center;
+  }
+  button{
+    appearance:none; border:0; cursor:pointer;
+    padding:10px 14px; border-radius:12px; font-weight:600;
+    background:#1f2937; color:#e5e7eb;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.06);
+    transition: transform .06s ease, box-shadow .2s ease, background .2s ease;
+  }
+  button:hover{ transform: translateY(-1px); }
+  button:active{ transform: translateY(0); }
+  button.primary{ background:#0ea5e9; color:#02131f; box-shadow:none; }
+  button.danger { background:#ef4444; color:white; }
+
+  .status{
+    font-size:14px; opacity:.8;
+  }
+
+  /* Accessibility hint text */
+  .kbd{
+    font: inherit;
+    border:1px solid #64748b; border-bottom-width:3px;
+    padding:.1rem .35rem; border-radius:.4rem; background:#0b1024; color:#cbd5e1;
+  }
+
+  @media (max-width: 700px){
+    .site{ grid-template-columns: 1fr; }
+    .sensor{ order: 2; }
+    .door-wrap{ order: 1; display:flex; justify-content:center; }
+  }
+</style>
+</head>
+<body>
+  <div class="panel" role="application" aria-label="Automatic sliding door demo">
+    <div class="title"><span class="dot" aria-hidden="true"></span> Automatic Door — Open & Close</div>
+
+    <div class="site">
+      <!-- Sensor Zone -->
+      <div class="sensor" id="sensor" tabindex="0" aria-label="Motion sensor zone">
+        <div>
+          <strong>Motion Sensor Zone</strong>
+          <small>Move mouse here, touch, or focus to trigger door.</small>
+          <small>Keyboard
